@@ -84,7 +84,6 @@ export const SpellsSource = {
             explicitArray: false,
         });
 
-        console.log('json: ', JSON.stringify(json, null, ' '));
         return json.compendium.spell;
     }
 };
@@ -106,8 +105,8 @@ export const DndHelperCommand = {
     extends: [Command],
 
     execute(result) {
-        console.log('executing DndHelperCommand', result);
-        // runApplescript({script: `display alert "${JSON.stringify(result)}"`});
+        // TODO should we do anything?
+        console.log('Selected', result);
     },
 
     describe() {
@@ -130,7 +129,6 @@ export const DndHelperCommand = {
         const level = (spell.level === '0')
             ? "Cantrip"
             : spell.level;
-        console.log(JSON.stringify(textList, null, ' '));
         return {
             type: 'html',
             value: `

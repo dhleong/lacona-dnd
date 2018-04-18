@@ -4,6 +4,8 @@
     "type": "object",
     "properties": {
       "showClasses": {
+        "title": "Show classes that can use each spell",
+        "description": "Disabled by default to maximize spell description space",
         "type": "boolean",
         "default": false
       }
