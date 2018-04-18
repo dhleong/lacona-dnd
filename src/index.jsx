@@ -112,10 +112,10 @@ export const DndHelperCommand = {
     describe() {
         return (
             <sequence>
-                <literal
-                    text='check '
+                <list
+                    limit={1}
+                    items={['check ', 'look up ', 'dnd ']}
                     category='action'
-                    optional
                 />
                 <Spell id='spell' />
             </sequence>
