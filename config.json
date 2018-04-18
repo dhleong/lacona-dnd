@@ -1,0 +1,12 @@
+{
+  "dnd": {
+    "title": "D&D Helper",
+    "type": "object",
+    "properties": {
+      "showClasses": {
+        "type": "boolean",
+        "default": false
+      }
+    }
+  }
+}
