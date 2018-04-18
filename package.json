@@ -1,7 +1,7 @@
 {
   "name": "lacona-dnd",
   "version": "1.0.0",
-  "description": "Lacona Addon to Look up spells, etc.",
+  "description": "Lacona Addon to look up D&D 5E spells, etc.",
   "main": "lib/index.js",
   "lacona": {
     "title": "D&D Helper",
@@ -11,7 +11,11 @@
   "scripts": {
     "build": "babel src --out-dir lib",
     "clean": "rimraf lib",
-    "prepublish": "npm run clean && npm run build"
+    "prepare": "npm run clean && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/dhleong/lacona-dnd"
   },
   "keywords": [
     "lacona",
