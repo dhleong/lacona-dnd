@@ -26,7 +26,7 @@ export const Kind = {
 
 const DND_APP_FILES_ROOT = 'https://raw.githubusercontent.com/storskegg/DnDAppFiles/master';
 const XML_URLS = {
-    [Kind.Spells]: `${DND_APP_FILES_ROOT}/Spells/PHB%20Spells.xml`,
+    [Kind.Spells]: `${DND_APP_FILES_ROOT}/Compendiums/Spells%20Compendium.xml`,
 
     [Kind.Items.Magic]: `${DND_APP_FILES_ROOT}/Items/Magic%20Items.xml`,
     [Kind.Items.Mundane]: `${DND_APP_FILES_ROOT}/Items/Mundane%20Items.xml`,
