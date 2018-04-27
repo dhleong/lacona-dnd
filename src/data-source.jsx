@@ -16,6 +16,7 @@ const readFile = promisify(fs.readFile);
 const parseXmlString = promisify(xml2js.parseString);
 
 export const Kind = {
+    Monsters: "monsters",
     Spells: "spells",
 
     Items: {
@@ -26,6 +27,7 @@ export const Kind = {
 
 const DND_APP_FILES_ROOT = 'https://raw.githubusercontent.com/storskegg/DnDAppFiles/master';
 const XML_URLS = {
+    [Kind.Monsters]: `${DND_APP_FILES_ROOT}/Compendiums/Bestiary%20Compendium.xml`,
     [Kind.Spells]: `${DND_APP_FILES_ROOT}/Compendiums/Spells%20Compendium.xml`,
 
     [Kind.Items.Magic]: `${DND_APP_FILES_ROOT}/Items/Magic%20Items.xml`,
