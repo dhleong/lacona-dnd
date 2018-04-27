@@ -7,6 +7,12 @@ import { fromPromise } from 'rxjs/observable/fromPromise';
 
 import { DataSource, Kind } from './data-source';
 
+function arrayify(v) {
+    if (!v) return [];
+    else if (Array.isArray(v)) return v;
+    else return [v];
+}
+
 const schools = {
     A: "Abjuration",
     C: "Conjuration",
@@ -27,21 +33,17 @@ const sizes = {
     G: "Gargantuan",
 };
 
-function urlForSpell(spell) {
-    const nameEncoded = encodeURIComponent(spell.name);
-    return `https://roll20.net/compendium/dnd5e/${nameEncoded}#attributes`;
-}
+const urlFactories = {
+    item: item => {
+        const nameEncoded = encodeURIComponent(item.name);
+        return `https://roll20.net/compendium/dnd5e/${nameEncoded}#content`;
+    },
 
-function urlForItem(item) {
-    const nameEncoded = encodeURIComponent(item.name);
-    return `https://roll20.net/compendium/dnd5e/${nameEncoded}#content`;
-}
-
-function arrayify(v) {
-    if (!v) return [];
-    else if (Array.isArray(v)) return v;
-    else return [v];
-}
+    spell: spell => {
+        const nameEncoded = encodeURIComponent(spell.name);
+        return `https://roll20.net/compendium/dnd5e/${nameEncoded}#attributes`;
+    },
+};
 
 const dataSource = new DataSource();
 
@@ -49,10 +51,24 @@ const dataSource = new DataSource();
  * Given an async function, creates a Source
  *  object that can be used with `SourceBackedEntity`
  */
-function AsyncSource(asyncFactory) {
+function AsyncSource(kind, asyncFactory) {
     return {
+        kind,
+
         fetch() {
-            return fromPromise(asyncFactory());
+            return fromPromise(this.doFetch());
+        },
+
+        async doFetch() {
+            const entities = await asyncFactory();
+            return entities.map(entity => {
+                const result = {
+                    text: entity.name,
+                    value: entity,
+                };
+                result.value.kind = kind;
+                return result;
+            });
         }
     };
 }
@@ -61,14 +77,14 @@ function AsyncSource(asyncFactory) {
  * Element definition factory util; expects a Source
  *  such as what might be generated from `AsyncSource`
  */
-function SourceBackedEntity(entityName, source) {
+function SourceBackedEntity(source) {
     return {
         describe({observe}) {
             const items = observe(
                 createElement(source)
             );
             return (
-                <placeholder argument={entityName}>
+                <placeholder argument={source.kind}>
                     <list items={items} strategy='fuzzy' />
                 </placeholder>
             );
@@ -76,27 +92,17 @@ function SourceBackedEntity(entityName, source) {
     };
 }
 
-export const MonstersSource = AsyncSource(async () => {
+export const MonstersSource = AsyncSource('monster', async () => {
     const json = await dataSource.fetch(Kind.Monsters);
-    return json.compendium.monster.map(m => {
-        return {
-            text: m.name,
-            value: m,
-        };
-    });
+    return json.compendium.monster;
 });
 
-export const SpellsSource = AsyncSource(async () => {
+export const SpellsSource = AsyncSource('spell', async () => {
     const json = await dataSource.fetch(Kind.Spells);
-    return json.compendium.spell.map(s => {
-        return {
-            text: s.name,
-            value: s,
-        };
-    });
+    return json.compendium.spell;
 });
 
-export const ItemsSource = AsyncSource(async () => {
+export const ItemsSource = AsyncSource('item', async () => {
     // fetch all item types in parallel
     const jsonRoots = await Promise.all([
         dataSource.fetch(Kind.Items.Magic),
@@ -104,30 +110,25 @@ export const ItemsSource = AsyncSource(async () => {
     ]);
 
     // flatten into a single array
-    const items = Array.prototype.concat(
+    return Array.prototype.concat(
         // we're only interested in the item array
         ...jsonRoots.map(json => json.compendium.item)
     );
-
-    return items.map(i => {
-        return {
-            text: i.name,
-            value: i,
-        };
-    });
 });
 
-export const Item = SourceBackedEntity('item', ItemsSource);
-export const Monster = SourceBackedEntity('monster', MonstersSource);
-export const Spell = SourceBackedEntity('spell', SpellsSource);
+export const Item = SourceBackedEntity(ItemsSource);
+export const Monster = SourceBackedEntity(MonstersSource);
+export const Spell = SourceBackedEntity(SpellsSource);
 
 export const DndHelperCommand = {
     extends: [Command],
 
     execute({entity}) {
         var url;
-        if (entity.spell) url = urlForSpell(entity.spell);
-        else if (entity.item) url = urlForItem(entity.item);
+
+        const kind = Object.keys(entity)[0];
+        const urlFactory = urlFactories[kind];
+        if (urlFactory) url = urlFactory(entity[kind]);
 
         if (url) {
             console.log('Opening', url);
