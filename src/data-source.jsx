@@ -16,6 +16,10 @@ const readFile = promisify(fs.readFile);
 const parseXmlString = promisify(xml2js.parseString);
 
 export const Kind = {
+    /**
+     * The Character compendium includes backgrounds, races, classes...
+     */
+    Character: "character",
     Monsters: "monsters",
     Spells: "spells",
 
@@ -27,6 +31,9 @@ export const Kind = {
 
 const DND_APP_FILES_ROOT = 'https://raw.githubusercontent.com/storskegg/DnDAppFiles/master';
 const XML_URLS = {
+    // NOTE: the Character compendium actually only has the Ranger class
+    // for some reason
+    [Kind.Character]: `${DND_APP_FILES_ROOT}/Compendiums/Full%20Compendium.xml`,
     [Kind.Monsters]: `${DND_APP_FILES_ROOT}/Compendiums/Bestiary%20Compendium.xml`,
     [Kind.Spells]: `${DND_APP_FILES_ROOT}/Compendiums/Spells%20Compendium.xml`,
 

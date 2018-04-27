@@ -6,32 +6,11 @@ import { openURL } from 'lacona-api';
 import { fromPromise } from 'rxjs/observable/fromPromise';
 
 import { DataSource, Kind } from './data-source';
+import { PreviewFactories } from './previews';
 
-function arrayify(v) {
-    if (!v) return [];
-    else if (Array.isArray(v)) return v;
-    else return [v];
+function flatten(arrayOfArrays) {
+    return Array.prototype.concat(...arrayOfArrays);
 }
-
-const schools = {
-    A: "Abjuration",
-    C: "Conjuration",
-    D: "Divination",
-    EN: "Enchantment",
-    EV: "Evocation",
-    I: "Illusion",
-    N: "Necromancy",
-    T: "Transmutation",
-};
-
-const sizes = {
-    T: "Tiny",
-    S: "Small",
-    M: "Medium",
-    L: "Large",
-    H: "Huge",
-    G: "Gargantuan",
-};
 
 const urlFactories = {
     item: item => {
@@ -110,15 +89,41 @@ export const ItemsSource = AsyncSource('item', async () => {
     ]);
 
     // flatten into a single array
-    return Array.prototype.concat(
+    return flatten(
         // we're only interested in the item array
-        ...jsonRoots.map(json => json.compendium.item)
+        jsonRoots.map(json => json.compendium.item)
+    );
+});
+
+export const TraitsSource = AsyncSource('trait', async () => {
+    // racial traits
+    const { compendium } = await dataSource.fetch(Kind.Character);
+
+    // TODO indicate which races have a trait?
+    return flatten(
+        compendium.race.map(race => race.trait)
+    );
+});
+
+export const FeaturesSource = AsyncSource('feature', async () => {
+    // class features
+    const { compendium } = await dataSource.fetch(Kind.Character);
+
+    // TODO indicate which classes have a feature? the level they get it?
+    return flatten(
+        compendium.class.map(klass => flatten(
+            klass.autolevel
+                .filter(al => al.feature)
+                .map(al => al.feature)
+        ))
     );
 });
 
 export const Item = SourceBackedEntity(ItemsSource);
 export const Monster = SourceBackedEntity(MonstersSource);
 export const Spell = SourceBackedEntity(SpellsSource);
+export const Feature = SourceBackedEntity(FeaturesSource);
+export const Trait = SourceBackedEntity(TraitsSource);
 
 export const DndHelperCommand = {
     extends: [Command],
@@ -148,105 +153,32 @@ export const DndHelperCommand = {
                     <Spell id='spell' />
                     <Item id='item' />
                     <Monster id='monster' />
+                    <Feature id='feature' />
+                    <Trait id='trait' />
                 </choice>
             </sequence>
         );
     },
 
     preview({entity}, {config}) {
-        if (entity.spell) {
-            return this.previewSpell(entity.spell, config);
-        } else if (entity.item) {
-            return this.previewItem(entity.item);
-        } else if (entity.monster) {
-            return this.previewMonster(entity.monster);
-        }
-    },
-
-    previewSpell(spell, config) {
-        const level = (spell.level === '0')
-            ? "Cantrip"
-            : spell.level;
+        const kind = Object.keys(entity)[0];
+        const factory = PreviewFactories[kind] || this.previewRawJson;
+        const html = factory.call(PreviewFactories, entity[kind], config);
         return {
             type: 'html',
-            value: `
-                <div>
-                    <div style="padding-bottom: 0.5em;">
-                        <div style="font-size:120%;"><b>${spell.name}</b></div>
-                        <i>${level} ${schools[spell.school]}</i>
-                    </div>
-                    <div><b>Casting Time</b>: ${spell.time}</div>
-                    <div><b>Range</b>: ${spell.range}</div>
-                    <div><b>Components</b>: ${spell.components}</div>
-                    <div><b>Duration</b>: ${spell.duration}</div>
-                    ${config.showClasses ? `
-                    <div><b>Classes</b>: ${spell.classes}</div>
-                    ` : '' }
-                    <div>
-                        ${this._previewText(spell)}
-                    </div>
-                </div>
-            `
+            value: html,
         };
     },
 
-    previewItem(item) {
-
-        const rarity = item.rarity
-            ? `<i>${item.rarity}</i>`
-            : '';
-
-        var text = this._previewText(item);
-        if (item.rarity) {
-            text = text.replace(`<p>Rarity: ${item.rarity}</p>`, "");
-        }
-
-        return {
-            type: 'html',
-            value: `
-                <div>
-                    <div style="padding-bottom: 0.5em;">
-                        <div style="font-size:120%;"><b>${item.name}</b></div>
-                        ${rarity}
-                    </div>
-                    <div>${text}</div>
-                </div>
-            `
-        };
-    },
-
-    previewMonster(monster) {
-        // TODO so many things
-
-        var size = sizes[monster.size];
-
-        var traits = arrayify(monster.trait).concat(arrayify(monster.action)).map(t => `
-            <div>
-                <b>${t.name}</b>
-                ${this._previewText(t)}
-            </div>
-        `).join("\n");
-
-        return {
-            type: 'html',
-            value: `
-                <div>
-                    <div style="padding-bottom: 0.5em;">
-                        <div style="font-size:120%;"><b>${monster.name}</b></div>
-                        <i>${size} ${monster.type}</i>
-                        <p>CR ${monster.cr}</p>
-                    </div>
-                    ${traits}
-                </div>
-            `
-        };
-    },
-
-    _previewText(entity) {
-        return arrayify(entity.text).map(t => `<p>${t}</p>`)
-            .join('\n');
+    previewRawJson(entity) {
+        return `
+            <pre>
+${JSON.stringify(entity, null, '  ')}
+            </pre>
+            `;
     },
 
 };
+
 
 export const extensions = [DndHelperCommand];
